@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: Laravel CRUD API
+  version: 1.0.0
+  description: Bearer-token API for authentication, products, posts, comments, likes, and device management.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+paths:
+  /register:
+    post:
+      security: []
+      summary: Register a user and create a device token
+      requestBody: { $ref: '#/components/requestBodies/Register' }
+      responses: { '201': { description: Registered } }
+  /login:
+    post:
+      security: []
+      summary: Log in on a named device (5 requests/minute)
+      requestBody: { $ref: '#/components/requestBodies/Login' }
+      responses: { '200': { description: Token returned }, '429': { description: Too many attempts } }
+  /logout:
+    post:
+      summary: Log out the current device
+      responses: { '200': { description: Logged out } }
+  /user:
+    get:
+      summary: Get the authenticated user and role
+      responses: { '200': { description: User profile } }
+  /email/verification-notification:
+    post:
+      summary: Send a verification email
+      responses: { '200': { description: Email sent } }
+  /forgot-password:
+    post:
+      security: []
+      summary: Send a password-reset link
+      responses: { '200': { description: Reset email requested } }
+  /reset-password:
+    post:
+      security: []
+      summary: Reset password using the emailed token
+      responses: { '200': { description: Password reset } }
+  /tokens:
+    get:
+      summary: List active device tokens
+      responses: { '200': { description: Devices } }
+  /tokens/{token}:
+    delete:
+      summary: Revoke an individual device token
+      parameters: [{ $ref: '#/components/parameters/TokenId' }]
+      responses: { '200': { description: Token revoked } }
+  /products:
+    get:
+      summary: List products
+      responses: { '200': { description: Product page } }
+    post:
+      summary: Create product (admin, verified email)
+      requestBody: { $ref: '#/components/requestBodies/Product' }
+      responses: { '201': { description: Created }, '403': { description: Forbidden } }
+  /products/{product}:
+    get: { summary: Get product, responses: { '200': { description: Product } } }
+    put: { summary: Update product (admin), responses: { '200': { description: Updated } } }
+    delete: { summary: Delete product (admin), responses: { '204': { description: Deleted } } }
+  /posts:
+    get: { summary: List posts including like/comment counts, responses: { '200': { description: Post page } } }
+    post: { summary: Create post (admin, verified email), responses: { '201': { description: Created } } }
+  /posts/{post}:
+    get: { summary: Get post, responses: { '200': { description: Post } } }
+    put: { summary: Update post (admin), responses: { '200': { description: Updated } } }
+    delete: { summary: Delete post (admin), responses: { '204': { description: Deleted } } }
+  /posts/{post}/comments:
+    get: { summary: List post comments, responses: { '200': { description: Comments } } }
+    post: { summary: Add comment, responses: { '201': { description: Created } } }
+  /comments/{comment}:
+    delete: { summary: Delete own comment or any comment as admin, responses: { '204': { description: Deleted } } }
+  /posts/{post}/likes:
+    post: { summary: Like post once, responses: { '200': { description: Liked } } }
+    delete: { summary: Unlike post, responses: { '200': { description: Unliked } } }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: Sanctum }
+  parameters:
+    TokenId: { name: token, in: path, required: true, schema: { type: integer } }
+  requestBodies:
+    Login:
+      required: true
+      content: { application/json: { schema: { type: object, required: [email, password], properties: { email: { type: string, format: email }, password: { type: string }, device_name: { type: string } } } } }
+    Register:
+      required: true
+      content: { application/json: { schema: { type: object, required: [name, email, password, password_confirmation], properties: { name: { type: string }, email: { type: string, format: email }, password: { type: string }, password_confirmation: { type: string }, device_name: { type: string } } } } }
+    Product:
+      required: true
+      content: { application/json: { schema: { type: object, required: [name, price], properties: { name: { type: string }, price: { type: number }, description: { type: string }, stock: { type: integer } } } } }
