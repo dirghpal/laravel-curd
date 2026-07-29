@@ -3,9 +3,7 @@
 use Illuminate\Http\JsonResponse;
 
 if (! function_exists('api_response')) {
-    /**
-     * Return a standardized success JSON response.
-     */
+   
     function api_response(mixed $data = null, string $message = 'Success', int $status = 200, array $meta = [])
     {
         $payload = [
@@ -23,9 +21,7 @@ if (! function_exists('api_response')) {
 }
 
 if (! function_exists('api_error')) {
-    /**
-     * Return a standardized error JSON response.
-     */
+    
     function api_error(string $message = 'An error occurred.', int $status = 400, array $errors = [])
     {
         $payload = [
@@ -42,9 +38,7 @@ if (! function_exists('api_error')) {
 }
 
 if (! function_exists('api_validation_error')) {
-    /**
-     * Return a standardized validation error JSON response.
-     */
+    
     function api_validation_error(array $errors): JsonResponse
     {
         return api_error('Please correct the highlighted fields and try again.', 422, $errors);

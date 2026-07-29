@@ -11,17 +11,30 @@ class ProductController extends ApiController
     public function index(Request $request)
     {
         $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
-        $sortBy = in_array($request->query('sort_by'), ['name', 'price', 'stock', 'created_at'], true)
-            ? $request->query('sort_by') : 'id';
-        $sortDirection = $request->query('sort_direction') === 'asc' ? 'asc' : 'desc';
+
+        $sortBy = in_array(
+            $request->query('sort_by'),
+            ['name', 'price', 'stock', 'created_at'],
+            true
+        ) ? $request->query('sort_by') : 'id';
+
+        $sortDirection = $request->query('sort_direction') === 'asc'
+            ? 'asc'
+            : 'desc';
 
         $products = Product::query()
-            ->when($request->filled('search'), fn ($query) => $query->where(function ($query) use ($request) {
-                $query->where('name', 'like', '%'.$request->query('search').'%')
-                    ->orWhere('description', 'like', '%'.$request->query('search').'%');
-            }))
-            ->when($request->filled('min_price'), fn ($query) => $query->where('price', '>=', $request->query('min_price')))
-            ->when($request->filled('max_price'), fn ($query) => $query->where('price', '<=', $request->query('max_price')))
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $query->where(function ($query) use ($request) {
+                    $query->where('name', 'like', '%' . $request->query('search') . '%')
+                        ->orWhere('description', 'like', '%' . $request->query('search') . '%');
+                });
+            })
+            ->when($request->filled('min_price'), function ($query) use ($request) {
+                $query->where('price', '>=', $request->query('min_price'));
+            })
+            ->when($request->filled('max_price'), function ($query) use ($request) {
+                $query->where('price', '<=', $request->query('max_price'));
+            })
             ->orderBy($sortBy, $sortDirection)
             ->paginate($perPage)
             ->withQueryString();
@@ -46,22 +59,30 @@ class ProductController extends ApiController
             'price' => 'required|numeric',
             'description' => 'nullable|string',
             'stock' => 'nullable|integer|min:0',
-            'image' => '0nullable|image|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
         }
+
         unset($data['image']);
 
         $product = Product::create($data);
 
-        return $this->respondSuccess($product, 'Product created successfully.', 201);
+        return $this->respondSuccess(
+            $product,
+            'Product created successfully.',
+            201
+        );
     }
 
     public function show(Product $product)
     {
-        return $this->respondSuccess($product, 'Product details retrieved successfully.');
+        return $this->respondSuccess(
+            $product,
+            'Product details retrieved successfully.'
+        );
     }
 
     public function update(Request $request, Product $product)
@@ -71,29 +92,46 @@ class ProductController extends ApiController
             'price' => 'required|numeric',
             'description' => 'nullable|string',
             'stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
-            if ($product->image_path) {
+
+            if (
+                $product->image_path &&
+                Storage::disk('public')->exists($product->image_path)
+            ) {
                 Storage::disk('public')->delete($product->image_path);
             }
+
             $data['image_path'] = $request->file('image')->store('products', 'public');
         }
+
         unset($data['image']);
 
         $product->update($data);
 
-        return $this->respondSuccess($product, 'Product updated successfully.');
+        return $this->respondSuccess(
+            $product,
+            'Product updated successfully.'
+        );
     }
 
     public function destroy(Product $product)
     {
-        if ($product->image_path) {
+        if (
+            $product->image_path &&
+            Storage::disk('public')->exists($product->image_path)
+        ) {
             Storage::disk('public')->delete($product->image_path);
         }
+
         $product->delete();
 
-        return $this->respondSuccess(null, 'Product deleted successfully.', 204);
+        return $this->respondSuccess(
+            null,
+            'Product deleted successfully.',
+            200
+        );
     }
 }

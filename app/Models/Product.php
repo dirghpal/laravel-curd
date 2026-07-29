@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'name',
         'price',
@@ -21,10 +23,14 @@ class Product extends Model
         'stock' => 'integer',
     ];
 
-    protected $appends = ['image_url'];
+    protected $appends = [
+        'image_url',
+    ];
 
     public function getImageUrlAttribute(): ?string
     {
-        return $this->image_path ? Storage::disk('public')->url($this->image_path) : null;
+        return $this->image_path
+            ? Storage::disk('public')->url($this->image_path)
+            : null;
     }
 }

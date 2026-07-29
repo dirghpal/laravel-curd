@@ -11,7 +11,7 @@ class ApiController extends Controller
     {
         return api_response($data, $message, $status, $meta);
     }
-
+    
     protected function respondError(string $message = 'An error occurred.', int $status = 400, array $errors = []): \Illuminate\Http\JsonResponse
     {
         return api_error($message, $status, $errors);
