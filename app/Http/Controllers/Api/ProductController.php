@@ -2,12 +2,27 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use OpenApi\Attributes as OA;
 
 class ProductController extends ApiController
 {
+    #[OA\Get(
+        path: "/products",  
+        summary: "Get Products",
+        tags: ["Products"],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Products retrieved successfully"
+            )
+        ]
+    )]
     public function index(Request $request)
     {
         $perPage = min(max((int) $request->query('per_page', 10), 1), 100);
@@ -22,45 +37,42 @@ class ProductController extends ApiController
             ? 'asc'
             : 'desc';
 
-        $products = Product::query()
+        $products = Product::with('category')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $query->where(function ($query) use ($request) {
-                    $query->where('name', 'like', '%' . $request->query('search') . '%')
-                        ->orWhere('description', 'like', '%' . $request->query('search') . '%');
+                    $query->where('name', 'like', '%' . $request->search . '%')
+                          ->orWhere('description', 'like', '%' . $request->search . '%');
                 });
             })
+            ->when($request->filled('category_id'), function ($query) use ($request) {
+                $query->where('category_id', $request->category_id);
+            })
             ->when($request->filled('min_price'), function ($query) use ($request) {
-                $query->where('price', '>=', $request->query('min_price'));
+                $query->where('price', '>=', $request->min_price);
             })
             ->when($request->filled('max_price'), function ($query) use ($request) {
-                $query->where('price', '<=', $request->query('max_price'));
+                $query->where('price', '<=', $request->max_price);
             })
             ->orderBy($sortBy, $sortDirection)
             ->paginate($perPage)
             ->withQueryString();
 
         return $this->respondSuccess(
-            $products->items(),
+            ProductResource::collection($products->items()),
             'Products retrieved successfully.',
             200,
             [
                 'current_page' => $products->currentPage(),
-                'per_page' => $products->perPage(),
-                'total' => $products->total(),
-                'last_page' => $products->lastPage(),
+                'last_page'    => $products->lastPage(),
+                'per_page'     => $products->perPage(),
+                'total'        => $products->total(),
             ]
         );
     }
 
-    public function store(Request $request)
+    public function store(StoreProductRequest $request)
     {
-        $data = $this->validateApi($request, [
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'description' => 'nullable|string',
-            'stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
+        $data = $request->validated();
 
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
@@ -71,7 +83,7 @@ class ProductController extends ApiController
         $product = Product::create($data);
 
         return $this->respondSuccess(
-            $product,
+            new ProductResource($product->load('category')),
             'Product created successfully.',
             201
         );
@@ -80,20 +92,14 @@ class ProductController extends ApiController
     public function show(Product $product)
     {
         return $this->respondSuccess(
-            $product,
+            new ProductResource($product->load('category')),
             'Product details retrieved successfully.'
         );
     }
 
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product)
     {
-        $data = $this->validateApi($request, [
-            'name' => 'required|string|max:255',
-            'price' => 'required|numeric',
-            'description' => 'nullable|string',
-            'stock' => 'nullable|integer|min:0',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-        ]);
+        $data = $request->validated();
 
         if ($request->hasFile('image')) {
 
@@ -112,7 +118,7 @@ class ProductController extends ApiController
         $product->update($data);
 
         return $this->respondSuccess(
-            $product,
+            new ProductResource($product->load('category')),
             'Product updated successfully.'
         );
     }
@@ -130,8 +136,7 @@ class ProductController extends ApiController
 
         return $this->respondSuccess(
             null,
-            'Product deleted successfully.',
-            200
+            'Product deleted successfully.'
         );
     }
 }

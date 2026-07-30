@@ -16,6 +16,7 @@ class Product extends Model
         'description',
         'stock',
         'image_path',
+        'category_id',
     ];
 
     protected $casts = [
@@ -32,5 +33,11 @@ class Product extends Model
         return $this->image_path
             ? Storage::disk('public')->url($this->image_path)
             : null;
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+
     }
 }

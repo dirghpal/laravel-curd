@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\LikeController;
 use App\Http\Controllers\Api\PostController as PostApiController;
 use App\Http\Controllers\Api\ProductController as ProductApiController; 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\CategoryController;
 
 Route::get('email/verify', function () {
     return api_error('Your email address is not verified.', 403);
@@ -40,10 +41,12 @@ Route::prefix('v1')->name('api.')->group(function () {
         Route::delete('posts/{post}/likes', [LikeController::class, 'destroy'])->name('posts.likes.destroy');
         Route::apiResource('posts', PostApiController::class)->except(['store', 'update', 'destroy']);
         Route::apiResource('products', ProductApiController::class)->except(['store', 'update', 'destroy']);
+        Route::apiResource('categories', CategoryController::class)->except(['store', 'update', 'destroy']);
 
         Route::middleware('role:admin')->group(function () {
             Route::apiResource('posts', PostApiController::class)->only(['store', 'update', 'destroy']);
             Route::apiResource('products', ProductApiController::class)->only(['store', 'update', 'destroy']);
+            Route::apiResource('categories', CategoryController::class)->only(['store', 'update', 'destroy']);
         });
         });
     });
