@@ -125,18 +125,12 @@ class ProductController extends ApiController
 
     public function destroy(Product $product)
     {
-        if (
-            $product->image_path &&
-            Storage::disk('public')->exists($product->image_path)
-        ) {
-            Storage::disk('public')->delete($product->image_path);
-        }
-
-        $product->delete();
-
-        return $this->respondSuccess(
-            null,
-            'Product deleted successfully.'
-        );
+        if ($product->image_path) {
+        Storage::disk('public')->delete($product->image_path);
     }
-}
+
+    $product->delete();
+
+    return response()->noContent(); // 204
+    }
+}    
